@@ -42,14 +42,3 @@ kafka-console-producer --bootstrap-server localhost:29092 --topic foobar
 kafka-console-producer --bootstrap-server localhost:9094 --topic foobar \
   --producer.config client.properties
 ```
-
-## Reading the Audit Logs
-
-Each audit log event is a JSON object. The key fields to look at:
-
-- `data.authenticationInfo.principal` — the client identity (e.g. `User:ANONYMOUS` for unauthenticated, `User:randomClient` for authenticated)
-- `data.methodName` — the operation (e.g. `kafka.Produce`)
-- `data.resourceName` — the topic being accessed
-- `data.serviceName` — the listener used (e.g. `crn:///kafka=.../listener=PLAIN` or `listener=AUDIT`)
-
-Unauthenticated clients show up as `User:ANONYMOUS` — these are the ones using the PLAIN listener without SASL credentials.
