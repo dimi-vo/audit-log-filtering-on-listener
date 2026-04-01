@@ -1,0 +1,72 @@
+{
+  "routes": {
+    "crn:///kafka=*/topic=_*": {
+      "consume": {
+        "allowed": "",
+        "denied": ""
+      },
+      "produce": {
+        "allowed": "",
+        "denied": ""
+      },
+      "management": {
+        "allowed": "",
+        "denied": ""
+      }
+    },
+    "crn:///kafka=*/topic=confluent-audit-log-events*": {
+      "consume": {
+        "allowed": "",
+        "denied": ""
+      },
+      "produce": {
+        "allowed": "",
+        "denied": ""
+      },
+      "management": {
+        "allowed": "",
+        "denied": ""
+      }
+    },
+    "crn:///kafka=*/topic=*": {
+      "produce": {
+        "allowed": "confluent-audit-log-events-allowed-topic-produce",
+        "denied": "confluent-audit-log-events-denied-topic-produce"
+      },
+      "consume": {
+        "allowed": "confluent-audit-log-events-allowed-topic-consume",
+        "denied": "confluent-audit-log-events-denied-topic-consume"
+      }
+    }
+  },
+  "destinations": {
+    "topics": {
+      "confluent-audit-log-events-allowed-topic-produce": {
+        "retention_ms": 7776000000
+      },
+      "confluent-audit-log-events-denied-topic-produce": {
+        "retention_ms": 7776000000
+      },
+      "confluent-audit-log-events-allowed-topic-consume": {
+        "retention_ms": 7776000000
+      },
+      "confluent-audit-log-events-denied-topic-consume": {
+        "retention_ms": 7776000000
+      },
+      "confluent-audit-log-events-default-allowed": {
+        "retention_ms": 7776000000
+      },
+      "confluent-audit-log-events-default-denied": {
+        "retention_ms": 7776000000
+      }
+    }
+  },
+  "default_topics": {
+    "allowed": "confluent-audit-log-events-default-allowed",
+    "denied": "confluent-audit-log-events-default-denied"
+  },
+  "excluded_principals": [
+    "User:broker",
+    "User:admin"
+  ]
+}

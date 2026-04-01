@@ -1,0 +1,72 @@
+services:
+
+  controller:
+    image: confluentinc/cp-server:${CP_VERSION}
+    hostname: controller
+    container_name: controller
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller:9093
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  broker:
+    image: confluentinc/cp-server:${CP_VERSION}
+    hostname: broker
+    container_name: broker
+    depends_on:
+      - controller
+    ports:
+      - "29092:29092"
+      - "9094:9094"
+    volumes:
+      - ./jaas:/etc/kafka/secrets
+    environment:
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@controller:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # Listeners:
+      #   BROKER  – internal inter-broker communication (not exposed)
+      #   PLAIN   – unauthenticated listener exposed on :29092 (the one we want to detect)
+      #   AUDIT   – SASL/PLAIN authenticated listener exposed on :9094
+      KAFKA_LISTENERS: BROKER://:9092,PLAIN://:29092,AUDIT://:9094
+      KAFKA_ADVERTISED_LISTENERS: BROKER://broker:9092,PLAIN://localhost:29092,AUDIT://localhost:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,BROKER:PLAINTEXT,PLAIN:PLAINTEXT,AUDIT:SASL_PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
+
+      # SASL configuration (applies to the AUDIT listener)
+      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
+      LISTENER_NAME_AUDIT_SASL_ENABLED_MECHANISMS: PLAIN
+      KAFKA_OPTS: -Djava.security.auth.login.config=/etc/kafka/secrets/broker_jaas.conf
+
+      # Authorization
+      KAFKA_AUTHORIZER_CLASS_NAME: io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: true
+      KAFKA_SUPER_USERS: User:broker;User:admin;User:ANONYMOUS
+
+      # Audit log routing (generated from security-event-router-config.json)
+      KAFKA_CONFLUENT_SECURITY_EVENT_ROUTER_CONFIG: '{"routes":{"crn:///kafka=*/topic=_*":{"consume":{"allowed":"","denied":""},"produce":{"allowed":"","denied":""},"management":{"allowed":"","denied":""}},"crn:///kafka=*/topic=confluent-audit-log-events*":{"consume":{"allowed":"","denied":""},"produce":{"allowed":"","denied":""},"management":{"allowed":"","denied":""}},"crn:///kafka=*/topic=*":{"produce":{"allowed":"confluent-audit-log-events-allowed-topic-produce","denied":"confluent-audit-log-events-denied-topic-produce"},"consume":{"allowed":"confluent-audit-log-events-allowed-topic-consume","denied":"confluent-audit-log-events-denied-topic-consume"}}},"destinations":{"topics":{"confluent-audit-log-events-allowed-topic-produce":{"retention_ms":7776000000},"confluent-audit-log-events-denied-topic-produce":{"retention_ms":7776000000},"confluent-audit-log-events-allowed-topic-consume":{"retention_ms":7776000000},"confluent-audit-log-events-denied-topic-consume":{"retention_ms":7776000000},"confluent-audit-log-events-default-allowed":{"retention_ms":7776000000},"confluent-audit-log-events-default-denied":{"retention_ms":7776000000}}},"default_topics":{"allowed":"confluent-audit-log-events-default-allowed","denied":"confluent-audit-log-events-default-denied"},"excluded_principals":["User:broker","User:admin"]}'
+
+      # Single-node replication factors
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_CONFLUENT_CLUSTER_LINK_METADATA_TOPIC_REPLICATION_FACTOR: 1
+
+      # Disable features not needed for the demo
+      KAFKA_CONFLUENT_BALANCER_ENABLE: false
+      KAFKA_CONFLUENT_METRICS_ENABLE: false
+      KAFKA_CONFLUENT_CONSUMER_LAG_EMITTER_ENABLED: false
+      KAFKA_GROUP_COORDINATOR_NEW_ENABLE: false
+      KAFKA_CONFLUENT_TELEMETRY_REMOTECONFIG_CONFLUENT_ENABLED: false
