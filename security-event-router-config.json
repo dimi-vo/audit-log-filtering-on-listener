@@ -30,11 +30,11 @@
     },
     "crn:///kafka=*/topic=*": {
       "produce": {
-        "allowed": "confluent-audit-log-events-allowed-topic-produce",
+        "allowed": "confluent-audit-log-events-default-allowed",
         "denied": "confluent-audit-log-events-denied-topic-produce"
       },
       "consume": {
-        "allowed": "confluent-audit-log-events-allowed-topic-consume",
+        "allowed": "confluent-audit-log-events-default-allowed",
         "denied": "confluent-audit-log-events-denied-topic-consume"
       }
     }

@@ -16,10 +16,18 @@ Audit log routing is configured to capture all produce/consume events on user to
 The audit log routing config lives in `security-event-router-config.json`. To update it:
 
 ```sh
-cat security-event-router-config.json | jq -c .
+cat security-event-router-config.json | jq -c . | pbcopy
 ```
 
 Paste the output into `KAFKA_CONFLUENT_SECURITY_EVENT_ROUTER_CONFIG` in `compose.yaml`.
+
+## Python Environment
+
+```sh
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ## Run the Demo
 
@@ -29,16 +37,41 @@ docker compose up -d
 
 # Create a test topic
 kafka-topics --bootstrap-server localhost:29092 --create --topic foobar
-
-# Start watching the audit log for produce events
-kafka-console-consumer --bootstrap-server localhost:29092 \
-  --topic confluent-audit-log-events-allowed-topic-produce \
-  --from-beginning
-
-# In another terminal — produce via the PLAIN listener (no auth)
-kafka-console-producer --bootstrap-server localhost:29092 --topic foobar
-
-# In another terminal — produce via the AUDIT listener (authenticated)
-kafka-console-producer --bootstrap-server localhost:9094 --topic foobar \
-  --producer.config client.properties
 ```
+
+### Producers
+
+In separate terminals (activate the venv in each):
+
+```sh
+# Producer A — sends to the PLAIN listener (no auth, port 29092)
+python producer_plain.py
+
+# Producer B — sends to the AUDIT listener (SASL/PLAIN, port 9094)
+python producer_secured.py
+```
+
+### Consumers
+
+```sh
+# Consumer A — reads from foobar via the PLAIN listener (no auth, port 29092)
+python consumer_plain.py
+
+# Consumer B — reads from foobar via the AUDIT listener (SASL/PLAIN, port 9094)
+python consumer_secured.py
+```
+
+### Audit Log Consumer
+
+```sh
+# Consumes audit-log events and prints a summary of each
+python consumer_audit.py
+```
+
+The audit consumer reads from `confluent-audit-log-events-allowed-topic-produce` and prints the listener, client ID, principal, timestamp, subject, and method for each event.
+
+### Grafana Metrics
+
+Check the dashboard Kafka cluster dashboard to see if there are enough connections count per listener.
+
+![alt text](image.png)

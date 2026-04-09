@@ -14,6 +14,15 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      EXTRA_ARGS:
+        -javaagent:/opt/jmx/jmx_prometheus_javaagent-0.20.0.jar=1234:/usr/share/jmx-exporter/kafka_broker.yml
+    ports:
+      - '9101:9101'
+    volumes:
+      - ./metrics/jmx-exporter:/usr/share/jmx-exporter
+      - ./jars/jmx:/opt/jmx
 
   broker:
     image: confluentinc/cp-server:${CP_VERSION}
@@ -26,6 +35,8 @@ services:
       - "9094:9094"
     volumes:
       - ./jaas:/etc/kafka/secrets
+      - ./metrics/jmx-exporter:/usr/share/jmx-exporter
+      - ./jars/jmx:/opt/jmx
     environment:
       CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
       KAFKA_NODE_ID: 2
@@ -53,7 +64,7 @@ services:
       KAFKA_SUPER_USERS: User:broker;User:admin;User:ANONYMOUS
 
       # Audit log routing (generated from security-event-router-config.json)
-      KAFKA_CONFLUENT_SECURITY_EVENT_ROUTER_CONFIG: '{"routes":{"crn:///kafka=*/topic=_*":{"consume":{"allowed":"","denied":""},"produce":{"allowed":"","denied":""},"management":{"allowed":"","denied":""}},"crn:///kafka=*/topic=confluent-audit-log-events*":{"consume":{"allowed":"","denied":""},"produce":{"allowed":"","denied":""},"management":{"allowed":"","denied":""}},"crn:///kafka=*/topic=*":{"produce":{"allowed":"confluent-audit-log-events-allowed-topic-produce","denied":"confluent-audit-log-events-denied-topic-produce"},"consume":{"allowed":"confluent-audit-log-events-allowed-topic-consume","denied":"confluent-audit-log-events-denied-topic-consume"}}},"destinations":{"topics":{"confluent-audit-log-events-allowed-topic-produce":{"retention_ms":7776000000},"confluent-audit-log-events-denied-topic-produce":{"retention_ms":7776000000},"confluent-audit-log-events-allowed-topic-consume":{"retention_ms":7776000000},"confluent-audit-log-events-denied-topic-consume":{"retention_ms":7776000000},"confluent-audit-log-events-default-allowed":{"retention_ms":7776000000},"confluent-audit-log-events-default-denied":{"retention_ms":7776000000}}},"default_topics":{"allowed":"confluent-audit-log-events-default-allowed","denied":"confluent-audit-log-events-default-denied"},"excluded_principals":["User:broker","User:admin"]}'
+      KAFKA_CONFLUENT_SECURITY_EVENT_ROUTER_CONFIG: '{"routes":{"crn:///kafka=*/topic=_*":{"consume":{"allowed":"","denied":""},"produce":{"allowed":"","denied":""},"management":{"allowed":"","denied":""}},"crn:///kafka=*/topic=confluent-audit-log-events*":{"consume":{"allowed":"","denied":""},"produce":{"allowed":"","denied":""},"management":{"allowed":"","denied":""}},"crn:///kafka=*/topic=*":{"produce":{"allowed":"confluent-audit-log-events-default-allowed","denied":"confluent-audit-log-events-denied-topic-produce"},"consume":{"allowed":"confluent-audit-log-events-default-allowed","denied":"confluent-audit-log-events-denied-topic-consume"}}},"destinations":{"topics":{"confluent-audit-log-events-allowed-topic-produce":{"retention_ms":7776000000},"confluent-audit-log-events-denied-topic-produce":{"retention_ms":7776000000},"confluent-audit-log-events-allowed-topic-consume":{"retention_ms":7776000000},"confluent-audit-log-events-denied-topic-consume":{"retention_ms":7776000000},"confluent-audit-log-events-default-allowed":{"retention_ms":7776000000},"confluent-audit-log-events-default-denied":{"retention_ms":7776000000}}},"default_topics":{"allowed":"confluent-audit-log-events-default-allowed","denied":"confluent-audit-log-events-default-denied"},"excluded_principals":["User:broker","User:admin"]}'
 
       # Single-node replication factors
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
@@ -70,3 +81,34 @@ services:
       KAFKA_CONFLUENT_CONSUMER_LAG_EMITTER_ENABLED: false
       KAFKA_GROUP_COORDINATOR_NEW_ENABLE: false
       KAFKA_CONFLUENT_TELEMETRY_REMOTECONFIG_CONFLUENT_ENABLED: false
+      KAFKA_JMX_PORT: 9104
+      KAFKA_JMX_HOSTNAME: localhost
+      EXTRA_ARGS:
+        -javaagent:/opt/jmx/jmx_prometheus_javaagent-0.20.0.jar=1234:/usr/share/jmx-exporter/kafka_broker.yml
+
+  prometheus:
+    depends_on:
+      - controller
+      - broker
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./metrics/prometheus:/etc/prometheus
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    depends_on:
+      - prometheus
+    ports:
+      - '3000:3000'
+    environment:
+      - "GF_SECURITY_ADMIN_USER=admin"
+      - "GF_SECURITY_ADMIN_PASSWORD=password"
+      - "GF_USERS_ALLOW_SIGN_UP=false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+
+
